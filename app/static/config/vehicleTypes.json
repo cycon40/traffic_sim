@@ -1,0 +1,7 @@
+{
+  "vehicle_types": {
+    "car": { "color": "#3A7AFE", "avg_speed_mph": 32, "max_speed_mph": 70 },
+    "truck": { "color": "#EF4444", "avg_speed_mph": 24, "max_speed_mph": 60 },
+    "bike": { "color": "#10B981", "avg_speed_mph": 15, "max_speed_mph": 25 }
+  }
+}
