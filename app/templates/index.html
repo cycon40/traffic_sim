@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Traffic Simulation</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="map" aria-label="Traffic simulation map"></div>
+      <div id="overlay-message" role="alert" hidden>Zoom in further to enable the simulation.</div>
+      <div id="controls" class="control-bar" aria-label="Simulation controls">
+        <button id="run-toggle" class="control-button primary" type="button">▶️ Run</button>
+        <button id="stop" class="control-button danger" type="button">🛑 Stop</button>
+        <label class="control-label" for="car-count">Car Count:</label>
+        <input id="car-count" class="control-input" type="number" min="1" value="3" aria-label="Number of vehicles to add" />
+      </div>
+      <div id="legend" class="legend" aria-live="polite"></div>
+      <div id="toast" role="status" aria-live="assertive" hidden></div>
+    </div>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-SmSRN8fM0tNvk9oPjiYPO2wT7GN+VDYVxC54JfDgFkA="
+      crossorigin=""
+    ></script>
+    <script type="module" src="/static/js/main.js"></script>
+  </body>
+</html>
