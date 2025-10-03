@@ -62,6 +62,15 @@ body,
   transform: translateY(-1px);
 }
 
+.control-button.secondary {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.control-button.secondary:hover {
+  background: rgba(148, 163, 184, 0.35);
+  transform: translateY(-1px);
+}
+
 .control-button.danger {
   background: var(--danger);
 }
@@ -139,11 +148,68 @@ body,
   font-size: 0.95rem;
 }
 
-.legend-chip {
+.legend-subtitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.legend-shape {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  --vehicle-color: #38bdf8;
+}
+
+.legend-shape::after {
+  content: "";
+  display: block;
   width: 14px;
   height: 14px;
+  background: var(--vehicle-color);
+  border: 2px solid rgba(15, 23, 42, 0.75);
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.18);
+  border-radius: 4px;
+}
+
+.legend-shape.shape-triangle::after {
+  clip-path: polygon(50% 6%, 8% 94%, 92% 94%);
+  border-radius: 0;
+}
+
+.legend-shape.shape-rectangle::after {
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.legend-shape.shape-diamond::after {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  border-radius: 0;
+}
+
+.legend-shape.shape-circle::after {
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.6);
+}
+
+.legend-instructions {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  list-style: disc;
+}
+
+.legend-instructions li {
+  margin: 0;
 }
 
 #overlay-message {
@@ -186,15 +252,59 @@ body,
   }
 }
 
-.vehicle-marker {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid rgba(15, 23, 42, 0.6);
-  box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.2);
+.leaflet-marker-icon.vehicle-icon {
+  background: transparent;
+  border: none;
 }
 
-.vehicle-marker.paused {
+.vehicle-icon {
+  --heading-deg: 0deg;
+  transition: transform 120ms linear;
+}
+
+.vehicle-icon .vehicle-marker {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(var(--heading-deg));
+  transition: transform 120ms linear;
+}
+
+.vehicle-icon .vehicle-marker::after {
+  content: "";
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: var(--vehicle-color, #38bdf8);
+  border: 2px solid rgba(15, 23, 42, 0.75);
+  box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.18);
+  border-radius: 4px;
+}
+
+.vehicle-icon .vehicle-marker.shape-triangle::after {
+  clip-path: polygon(50% 6%, 8% 94%, 92% 94%);
+  border-radius: 0;
+  transform-origin: 50% 65%;
+}
+
+.vehicle-icon .vehicle-marker.shape-rectangle::after {
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.vehicle-icon .vehicle-marker.shape-diamond::after {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  border-radius: 0;
+}
+
+.vehicle-icon .vehicle-marker.shape-circle::after {
+  border-radius: 50%;
+}
+
+.vehicle-icon.paused .vehicle-marker::after {
   animation: pulse 1s ease infinite;
 }
 
@@ -243,3 +353,7 @@ body,
     min-width: 180px;
   }
 }
+
+
+
+

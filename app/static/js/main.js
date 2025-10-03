@@ -8,6 +8,12 @@ import { InteractionHandler } from "./interactionHandler.js";
 import { logger } from "./utils/logger.js";
 
 const LEAFLET_TIMEOUT_MS = 4000;
+const SPEED_MODES = [
+  { id: "normal", label: "Cruise", kind: "fixed", multiplier: 1 },
+  { id: "fast", label: "Rush", kind: "fixed", multiplier: 1.7 },
+  { id: "zoom-sync", label: "Zoom Sync", kind: "dynamic", baseMultiplier: 1.15, min: 0.9, max: 3.2 },
+];
+
 let initialized = false;
 let timeoutId = null;
 
@@ -38,18 +44,23 @@ function initializeApp() {
   let overlayBuilt = false;
   let preserveVehiclesOnStop = false;
   let interactions = null;
+  let speedModeIndex = 0;
 
   const uiControls = new UIControls({
     onRunToggle: () => handleRunToggle(),
     onStop: () => handleStop(),
     onCarCountChange: (value) => interactions?.setCarCount(value),
+    onSpeedModeToggle: () => handleSpeedModeToggle(),
   });
 
   const vehicleEngine = new VehicleEngine(mapViewer, overlayManager, vehicleConfig);
   interactions = new InteractionHandler(mapViewer, overlayManager, vehicleEngine, uiControls);
 
+  applySpeedMode(SPEED_MODES[speedModeIndex]);
+
   vehicleConfig.ready.then(() => {
     uiControls.renderLegend(Array.from(vehicleConfig.getTypes().values()));
+    uiControls.setSpeedMode(SPEED_MODES[speedModeIndex], vehicleEngine.getCurrentSpeedMultiplier());
   });
 
   mapViewer.onZoomChange((radius) => {
@@ -59,11 +70,15 @@ function initializeApp() {
     uiControls.updateZoomIndicator(radius, thresholdMiles);
     const shouldShow = radius > thresholdMiles && (simulation.isIdle() || simulation.state === SimulationStates.STOPPED);
     uiControls.showOverlayMessage(shouldShow);
+    if (vehicleEngine.isDynamicSpeed()) {
+      uiControls.setSpeedMode(SPEED_MODES[speedModeIndex], vehicleEngine.getCurrentSpeedMultiplier());
+    }
   });
 
   // Trigger an initial indicator update before the first interaction.
   uiControls.updateZoomIndicator(mapViewer.getVisibleRadiusMiles(), thresholdMiles);
   uiControls.showOverlayMessage(!mapViewer.isWithinInteractionThreshold());
+  uiControls.setSpeedMode(SPEED_MODES[speedModeIndex], vehicleEngine.getCurrentSpeedMultiplier());
 
   vehicleEngine.on("counts", (counts) => {
     logger.debug("vehicle counts", counts);
@@ -157,6 +172,22 @@ function initializeApp() {
     if (simulation.state === SimulationStates.IDLE) return;
     simulation.stop();
     uiControls.showToast("Simulation stopped");
+  }
+
+  function applySpeedMode(mode) {
+    vehicleEngine.setSpeedMode(mode);
+    uiControls.setSpeedMode(mode, vehicleEngine.getCurrentSpeedMultiplier());
+  }
+
+  function handleSpeedModeToggle() {
+    speedModeIndex = (speedModeIndex + 1) % SPEED_MODES.length;
+    const mode = SPEED_MODES[speedModeIndex];
+    applySpeedMode(mode);
+    if (mode.kind === "dynamic") {
+      uiControls.showToast("Speed now adapts to your zoom level");
+    } else if (mode.id === "fast") {
+      uiControls.showToast("Vehicles boosted - hang on!");
+    }
   }
 
   window.addEventListener("beforeunload", () => {

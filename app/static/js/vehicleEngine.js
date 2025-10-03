@@ -7,6 +7,8 @@ function randomChoice(items) {
   return items[idx];
 }
 
+const DEFAULT_SPEED_MODE = { id: "normal", kind: "fixed", label: "Cruise", multiplier: 1 };
+
 export class VehicleEngine {
   constructor(mapViewer, overlayManager, vehicleConfig) {
     this.mapViewer = mapViewer;
@@ -22,6 +24,7 @@ export class VehicleEngine {
     this.listeners = new Map();
     this.typeIterator = null;
     this.hasActiveVehicles = false;
+    this.speedMode = DEFAULT_SPEED_MODE;
   }
 
   on(event, callback) {
@@ -59,27 +62,40 @@ export class VehicleEngine {
       const baseDistance = this.distanceAt(segment, segmentIndex, tOnSegment);
       const jitter = (Math.random() * 8 - 4) * i;
       const initialDistance = clamp(baseDistance + jitter, 0, segment.totalLength);
-      const marker = L.circleMarker(segment.latlngs[segmentIndex], {
-        radius: 6,
-        weight: 2,
-        color: "#0f172a",
-        fillColor: type.color,
-        fillOpacity: 1,
+      const shapeClass = type?.shape ? `shape-${type.shape}` : "shape-circle";
+      const icon = L.divIcon({
+        className: "vehicle-icon",
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        html: `<div class="vehicle-marker ${shapeClass}" style="--vehicle-color:${type?.color || "#38bdf8"}"></div>`,
+      });
+      const marker = L.marker(segment.latlngs[segmentIndex], {
+        icon,
         pane: "markerPane",
+        interactive: false,
+        keyboard: false,
       }).addTo(this.map);
-      marker.getElement()?.classList.add("vehicle-marker");
+      const baseSpeed = clamp(
+        (type?.avgSpeedMps || 8) * (0.85 + Math.random() * 0.3),
+        1,
+        type?.maxSpeedMps || 30,
+      );
       const vehicle = {
         id: vehicleId,
         type,
         segmentId: segment.id,
         direction,
         distance: initialDistance,
-        speedMps: clamp(type.avgSpeedMps * (0.85 + Math.random() * 0.3), 1, type.maxSpeedMps),
+        baseSpeedMps: baseSpeed,
         status: "active",
         marker,
       };
       this.vehicles.set(vehicleId, vehicle);
       this.updateMarkerPosition(vehicle);
+      const element = marker.getElement();
+      if (element) {
+        element.dataset.vehicleType = type?.name || "vehicle";
+      }
     }
     this.hasActiveVehicles = true;
     this.emitCounts();
@@ -152,9 +168,35 @@ export class VehicleEngine {
     this.emitCounts();
   }
 
+  setSpeedMode(mode) {
+    this.speedMode = mode || DEFAULT_SPEED_MODE;
+  }
+
+  isDynamicSpeed() {
+    return this.speedMode?.kind === "dynamic";
+  }
+
+  getCurrentSpeedMultiplier() {
+    if (!this.speedMode) return 1;
+    if (this.speedMode.kind === "fixed") {
+      const fixed = this.speedMode.multiplier ?? 1;
+      return clamp(fixed, 0.5, 5);
+    }
+    const rawThreshold = this.mapViewer?.getInteractionThresholdMiles?.();
+    const threshold = Number.isFinite(rawThreshold) ? rawThreshold : 0;
+    const rawRadius = this.mapViewer?.getVisibleRadiusMiles?.();
+    const radius = Number.isFinite(rawRadius) ? rawRadius : threshold || 1;
+    const baseRatio = threshold > 0 ? radius / threshold : 1;
+    const scaled = baseRatio * (this.speedMode.baseMultiplier ?? 1);
+    const min = this.speedMode.min ?? 0.75;
+    const max = this.speedMode.max ?? 3.5;
+    return clamp(scaled, min, max);
+  }
+
   update(delta) {
     if (delta <= 0) return;
     const bounds = this.map.getBounds().pad(0.2);
+    const speedMultiplier = this.getCurrentSpeedMultiplier();
     this.vehicles.forEach((vehicle) => {
       if (vehicle.status === "exited") return;
       if (vehicle.status === "blocked") {
@@ -171,7 +213,8 @@ export class VehicleEngine {
         return;
       }
 
-      let remaining = vehicle.speedMps * delta;
+      const baseSpeed = vehicle.baseSpeedMps ?? vehicle.speedMps ?? vehicle.type?.avgSpeedMps ?? 8;
+      let remaining = clamp(baseSpeed, 0.5, 100) * speedMultiplier * delta;
       while (remaining > 0 && vehicle.status === "active") {
         const segment = this.overlayManager.getSegment(vehicle.segmentId);
         if (!segment) {
@@ -242,11 +285,43 @@ export class VehicleEngine {
     const segment = this.overlayManager.getSegment(vehicle.segmentId);
     if (!segment) return;
     const distance = clamp(vehicle.distance, 0, segment.totalLength);
-    const latlng = this.latLngAtDistance(segment, distance);
+    const { latlng, heading } = this.poseAtDistance(segment, distance, vehicle.direction);
     vehicle.marker.setLatLng(latlng);
+    const element = vehicle.marker.getElement();
+    if (element) {
+      element.style.setProperty("--heading-deg", `${heading}deg`);
+    }
   }
 
-  latLngAtDistance(segment, distance) {
+  poseAtDistance(segment, distance, direction) {
+    const clampedDistance = clamp(distance, 0, segment.totalLength);
+    const current = this.interpolateLatLng(segment, clampedDistance);
+    const offsetMeters = Math.max(segment.totalLength * 0.0125, 3);
+    let sampleDistance = clamp(
+      clampedDistance + offsetMeters * direction,
+      0,
+      segment.totalLength,
+    );
+    if (sampleDistance === clampedDistance) {
+      sampleDistance = clamp(
+        clampedDistance - offsetMeters * direction,
+        0,
+        segment.totalLength,
+      );
+    }
+    const ahead = this.interpolateLatLng(segment, sampleDistance);
+    let dx = ahead.lng - current.lng;
+    let dy = ahead.lat - current.lat;
+    if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) {
+      dx = 0;
+      dy = direction;
+    }
+    let heading = Math.atan2(dx, dy) * (180 / Math.PI);
+    heading = (heading + 360) % 360;
+    return { latlng: L.latLng(current.lat, current.lng), heading };
+  }
+
+  interpolateLatLng(segment, distance) {
     const target = clamp(distance, 0, segment.totalLength);
     const cumulative = segment.cumulativeLengths;
     let index = 1;
@@ -261,7 +336,7 @@ export class VehicleEngine {
     const ratio = segmentLength === 0 ? 0 : (target - startDistance) / segmentLength;
     const lat = prevPoint.lat + (nextPoint.lat - prevPoint.lat) * ratio;
     const lng = prevPoint.lng + (nextPoint.lng - prevPoint.lng) * ratio;
-    return L.latLng(lat, lng);
+    return { lat, lng };
   }
 
   emitCounts() {

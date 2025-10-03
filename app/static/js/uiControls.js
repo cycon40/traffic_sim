@@ -1,8 +1,15 @@
 import { logger } from "./utils/logger.js";
 
+function formatMultiplier(value) {
+  if (!Number.isFinite(value)) return "x1.0";
+  const rounded = Math.round(value * 10) / 10;
+  return `x${rounded.toFixed(1)}`;
+}
+
 export class UIControls {
-  constructor({ onRunToggle, onStop, onCarCountChange }) {
+  constructor({ onRunToggle, onStop, onCarCountChange, onSpeedModeToggle }) {
     this.runButton = document.getElementById("run-toggle");
+    this.speedButton = document.getElementById("speed-mode");
     this.stopButton = document.getElementById("stop");
     this.carInput = document.getElementById("car-count");
     this.toast = document.getElementById("toast");
@@ -16,9 +23,10 @@ export class UIControls {
       this.zoomStatus.removeAttribute("data-status");
     }
 
-    this.runButton.addEventListener("click", () => onRunToggle());
-    this.stopButton.addEventListener("click", () => onStop());
-    this.carInput.addEventListener("change", () => {
+    this.runButton?.addEventListener("click", () => onRunToggle());
+    this.speedButton?.addEventListener("click", () => onSpeedModeToggle());
+    this.stopButton?.addEventListener("click", () => onStop());
+    this.carInput?.addEventListener("change", () => {
       const value = Math.max(1, Math.floor(Number(this.carInput.value) || 1));
       this.carInput.value = value;
       onCarCountChange(value);
@@ -49,7 +57,16 @@ export class UIControls {
     }
   }
 
+  setSpeedMode(mode, multiplier) {
+    if (!this.speedButton || !mode) return;
+    const factor = formatMultiplier(multiplier ?? mode.multiplier ?? 1);
+    this.speedButton.textContent = `Speed: ${mode.label} (${factor})`;
+    this.speedButton.dataset.mode = mode.id;
+    this.speedButton.setAttribute("aria-label", `Switch speed mode. Current mode ${mode.label} ${factor}`);
+  }
+
   showOverlayMessage(show) {
+    if (!this.overlayMessage) return;
     this.overlayMessage.hidden = !show;
   }
 
@@ -74,6 +91,7 @@ export class UIControls {
   }
 
   showToast(message) {
+    if (!this.toast) return;
     logger.info("toast", message);
     this.toast.textContent = message;
     this.toast.hidden = false;
@@ -87,22 +105,52 @@ export class UIControls {
 
   renderLegend(vehicleTypes) {
     const legend = document.getElementById("legend");
+    if (!legend) return;
     legend.innerHTML = "";
+
     const title = document.createElement("div");
     title.className = "legend-title";
-    title.textContent = "Vehicle Types";
+    title.textContent = "Roadside Guide";
     legend.appendChild(title);
+
+    const vehicleSubtitle = document.createElement("div");
+    vehicleSubtitle.className = "legend-subtitle";
+    vehicleSubtitle.textContent = "Vehicle Markers";
+    legend.appendChild(vehicleSubtitle);
+
     vehicleTypes.forEach((type) => {
       const row = document.createElement("div");
       row.className = "legend-item";
-      const chip = document.createElement("span");
-      chip.className = "legend-chip";
-      chip.style.backgroundColor = type.color;
+
+      const shape = document.createElement("span");
+      shape.className = `legend-shape shape-${type.shape || "circle"}`;
+      shape.style.setProperty("--vehicle-color", type.color);
+
       const label = document.createElement("span");
-      label.textContent = `${type.name} - avg ${Math.round(type.avgSpeedMps / 0.44704)} mph`;
-      row.appendChild(chip);
+      const mph = Math.round((type.avgSpeedMps || 0) / 0.44704);
+      const descriptor = type.shapeLabel || type.shape || "marker";
+      label.textContent = `${type.displayName} · ${descriptor} · ~${mph} mph`;
+
+      row.appendChild(shape);
       row.appendChild(label);
       legend.appendChild(row);
     });
+
+    const howSubtitle = document.createElement("div");
+    howSubtitle.className = "legend-subtitle";
+    howSubtitle.textContent = "How to Play";
+    legend.appendChild(howSubtitle);
+
+    const instructions = document.createElement("ul");
+    instructions.className = "legend-instructions";
+    instructions.innerHTML = [
+      "Zoom until the radius indicator turns green.",
+      "Left click a highlighted road to deploy the selected vehicles.",
+      "Right click a road to drop a block and stop traffic.",
+      "Use the Speed button to match the pace to your zoom.",
+    ]
+      .map((step) => `<li>${step}</li>`)
+      .join("");
+    legend.appendChild(instructions);
   }
 }
