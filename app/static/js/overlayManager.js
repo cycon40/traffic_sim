@@ -34,7 +34,8 @@ export class OverlayManager {
     this.map = map;
     this.segments = new Map();
     this.blocks = new Map();
-    this.blockedSegments = new Set();
+    // Map of segmentId -> { distance: number } where distance is meters along the segment
+    this.blockedSegments = new Map();
     this.highlighted = null;
     this.adjacency = new Map();
   }
@@ -189,7 +190,7 @@ out;
     this.highlighted = segmentId;
   }
 
-  addBlock(segmentId) {
+  addBlock(segmentId, opts = {}) {
     const segment = this.segments.get(segmentId);
     if (!segment) return null;
     const blockId = `${segmentId}-${Date.now()}`;
@@ -198,11 +199,21 @@ out;
     this.updateScreenPoints();
     const pts = segment.screenPoints;
     if (!pts || pts.length < 2) return null;
-    const mid = Math.floor(pts.length / 2);
-    const a = pts[Math.max(0, mid - 1)];
-    const b = pts[Math.min(pts.length - 1, mid)];
-    const cx = (a.x + b.x) / 2;
-    const cy = (a.y + b.y) / 2;
+
+    // Determine placement based on the click location when available
+    let segIdx = Number.isFinite(opts.segmentIndex) ? Math.max(0, Math.min(pts.length - 2, opts.segmentIndex)) : null;
+    let tOnSeg = typeof opts.tOnSegment === "number" ? Math.max(0, Math.min(1, opts.tOnSegment)) : null;
+    if (segIdx == null || tOnSeg == null) {
+      const clickPoint = opts.point || pts[Math.floor(pts.length / 2)];
+      const nearest = distancePointToPolyline(clickPoint, pts);
+      segIdx = Math.max(0, Math.min(pts.length - 2, nearest.segmentIndex));
+      tOnSeg = typeof nearest.tOnSegment === "number" ? nearest.tOnSegment : 0.5;
+    }
+
+    const a = pts[segIdx];
+    const b = pts[segIdx + 1];
+    const cx = a.x + (b.x - a.x) * tOnSeg;
+    const cy = a.y + (b.y - a.y) * tOnSeg;
     const vx = b.x - a.x;
     const vy = b.y - a.y;
     const vlen = Math.hypot(vx, vy) || 1;
@@ -238,7 +249,12 @@ out;
     }).addTo(this.map);
 
     this.blocks.set(blockId, { segmentId, block });
-    this.blockedSegments.add(segmentId);
+    // Record precise distance along the segment used for routing
+    const idx = Math.max(0, Math.min(segment.cumulativeLengths.length - 2, segIdx));
+    const start = segment.cumulativeLengths[idx];
+    const segLen = segment.cumulativeLengths[idx + 1] - start;
+    const blockDistance = start + segLen * tOnSeg;
+    this.blockedSegments.set(segmentId, { distance: blockDistance });
     return blockId;
   }
 
@@ -258,6 +274,10 @@ out;
 
   isSegmentBlocked(segmentId) {
     return this.blockedSegments.has(segmentId);
+  }
+
+  getBlockInfo(segmentId) {
+    return this.blockedSegments.get(segmentId) || null;
   }
 
   getSegment(segmentId) {

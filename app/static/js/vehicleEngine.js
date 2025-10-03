@@ -68,8 +68,8 @@ export class VehicleEngine {
       const vehicleId = `vehicle-${this.vehicleId += 1}`;
       const direction = 1;
       const baseDistance = this.distanceAt(segment, segmentIndex, tOnSegment);
-      const jitter = (Math.random() * 8 - 4) * i;
-      const initialDistance = clamp(baseDistance + jitter, 0, segment.totalLength);
+      const distanceJitter = (Math.random() * 8 - 4) * i;
+      const initialDistance = clamp(baseDistance + distanceJitter, 0, segment.totalLength);
       const iconMarkup = getVehicleIconMarkup(type?.shape || type?.name);
       const vehicleColor = type?.color || "#38bdf8";
       const icon = L.divIcon({
@@ -84,18 +84,16 @@ export class VehicleEngine {
         interactive: false,
         keyboard: false,
       }).addTo(this.map);
-      const baseSpeed = clamp(
-        (type?.avgSpeedMps || 8) * (0.85 + Math.random() * 0.3),
-        1,
-        type?.maxSpeedMps || 30,
-      );
+      const speedJitter = 0.85 + Math.random() * 0.3;
+      const baseSpeed = clamp((type?.avgSpeedMps || 8) * speedJitter, 1, type?.maxSpeedMps || 30);
       const vehicle = {
         id: vehicleId,
         type,
         segmentId: segment.id,
         direction,
         distance: initialDistance,
-        baseSpeedMps: baseSpeed,
+        // Maintain a per-vehicle factor so user-edited type speeds apply live
+        speedFactor: (type?.avgSpeedMps ? baseSpeed / type.avgSpeedMps : 1),
         status: "active",
         marker,
       };
@@ -209,27 +207,35 @@ export class VehicleEngine {
     this.vehicles.forEach((vehicle) => {
       if (vehicle.status === "exited") return;
       if (vehicle.status === "blocked") {
-        // Try to reroute if the segment is still blocked
-        if (!this.overlayManager.isSegmentBlocked(vehicle.segmentId)) {
-          vehicle.status = "active";
-          vehicle.marker.getElement()?.classList.remove("paused");
-        } else if (this.rerouteFromBlocked(vehicle)) {
+        // If we are stationed at a node and a path opens, try to proceed
+        const segment = this.overlayManager.getSegment(vehicle.segmentId);
+        if (!segment) return;
+        const nodeKey = vehicle.direction === 1 ? segment.terminals.endKey : segment.terminals.startKey;
+        const candidates = this.overlayManager
+          .getConnectedSegments(nodeKey, vehicle.segmentId)
+          .filter((c) => !this.overlayManager.isSegmentBlocked(c.segmentId));
+        if (candidates.length > 0) {
           vehicle.status = "active";
           vehicle.marker.getElement()?.classList.remove("paused");
         } else {
-          return;
-        }
-      }
-      if (this.overlayManager.isSegmentBlocked(vehicle.segmentId)) {
-        // Attempt immediate reroute instead of stopping
-        if (!this.rerouteFromBlocked(vehicle)) {
-          vehicle.status = "blocked";
-          vehicle.marker.getElement()?.classList.add("paused");
-          return;
+          return; // remain blocked at node
         }
       }
 
-      const baseSpeed = vehicle.baseSpeedMps ?? vehicle.speedMps ?? vehicle.type?.avgSpeedMps ?? 8;
+      // Anticipate blocks: if a block lies ahead on the current segment,
+      // plan a U-turn and head back to the previous node before reaching the block.
+      const blockInfo = this.overlayManager.getBlockInfo(vehicle.segmentId);
+      if (blockInfo) {
+        const dist = blockInfo.distance;
+        const ahead = vehicle.direction === 1 ? vehicle.distance < dist : vehicle.distance > dist;
+        if (ahead && !vehicle.uTurnPlanned) {
+          vehicle.uTurnPlanned = true;
+          vehicle.direction *= -1; // begin heading back to the previous intersection
+        }
+      }
+
+      const avg = vehicle.type?.avgSpeedMps ?? 8;
+      const baseSpeed = avg * (vehicle.speedFactor ?? 1);
       let remaining = clamp(baseSpeed, 0.5, 100) * speedMultiplier * delta;
       while (remaining > 0 && vehicle.status === "active") {
         const segment = this.overlayManager.getSegment(vehicle.segmentId);
@@ -247,7 +253,9 @@ export class VehicleEngine {
           remaining -= distanceToTarget;
           const transitioned = this.advanceToNextSegment(vehicle);
           if (!transitioned) {
-            vehicle.status = "exited";
+            // If we couldn't transition at this node, stay here as blocked
+            vehicle.status = "blocked";
+            vehicle.marker.getElement()?.classList.add("paused");
             break;
           }
         }

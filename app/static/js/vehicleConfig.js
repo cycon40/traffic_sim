@@ -45,14 +45,15 @@ export class VehicleConfig {
           const displayName = value.display_name || metadata.displayName || toDisplayName(name);
           const shape = normalizeShape(value.shape, metadata.shape);
           const legend = value.shape_label || metadata.legend || `${displayName} marker`;
-          this.types.set(name, {
-            name,
-            displayName,
-            color: value.color,
-            shape,
-            shapeLabel: legend,
-            avgSpeedMps: (value.avg_speed_mph || 25) * 0.44704,
-            maxSpeedMps: (value.max_speed_mph || value.avg_speed_mph || 35) * 0.44704,
+        this.types.set(name, {
+          name,
+          displayName,
+          color: value.color,
+          shape,
+          shapeLabel: legend,
+          // Increase default average speed by 20%
+          avgSpeedMps: ((value.avg_speed_mph || 25) * 1.2) * 0.44704,
+          maxSpeedMps: (value.max_speed_mph || value.avg_speed_mph || 35) * 0.44704,
         });
       });
       if (!this.types.size) {
@@ -62,10 +63,10 @@ export class VehicleConfig {
     } catch (error) {
       logger.error("Failed to load vehicle config", error);
       const fallback = new Map([
-        ["car", { name: "car", displayName: "Car", color: "#0ea5a6", shape: "sedan", shapeLabel: "Sedan", avgSpeedMps: 30 * 0.44704, maxSpeedMps: 65 * 0.44704 }],
-        ["van", { name: "van", displayName: "Van", color: "#a78bfa", shape: "van", shapeLabel: "Van", avgSpeedMps: 28 * 0.44704, maxSpeedMps: 65 * 0.44704 }],
-        ["truck", { name: "truck", displayName: "Truck", color: "#f59e0b", shape: "truck", shapeLabel: "Truck", avgSpeedMps: 24 * 0.44704, maxSpeedMps: 60 * 0.44704 }],
-        ["semi_truck", { name: "semi_truck", displayName: "Semi-Truck", color: "#f472b6", shape: "semi", shapeLabel: "Semi", avgSpeedMps: 22 * 0.44704, maxSpeedMps: 65 * 0.44704 }],
+        ["car", { name: "car", displayName: "Car", color: "#0ea5a6", shape: "sedan", shapeLabel: "Sedan", avgSpeedMps: 30 * 1.2 * 0.44704, maxSpeedMps: 65 * 0.44704 }],
+        ["van", { name: "van", displayName: "Van", color: "#a78bfa", shape: "van", shapeLabel: "Van", avgSpeedMps: 28 * 1.2 * 0.44704, maxSpeedMps: 65 * 0.44704 }],
+        ["truck", { name: "truck", displayName: "Truck", color: "#f59e0b", shape: "truck", shapeLabel: "Truck", avgSpeedMps: 24 * 1.2 * 0.44704, maxSpeedMps: 60 * 0.44704 }],
+        ["semi_truck", { name: "semi_truck", displayName: "Semi-Truck", color: "#f472b6", shape: "semi", shapeLabel: "Semi", avgSpeedMps: 22 * 1.2 * 0.44704, maxSpeedMps: 65 * 0.44704 }],
       ]);
       this.types = fallback;
       return fallback;

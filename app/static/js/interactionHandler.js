@@ -28,7 +28,8 @@ export class InteractionHandler {
     this.map.on("click", this.pointerClick);
     this.map.on("contextmenu", this.pointerClick);
     this.map.on("contextmenu", this.contextMenu);
-    this.map.getContainer().style.cursor = "not-allowed";
+    // Allow panning via left-click drag while interactions are enabled
+    this.map.getContainer().style.cursor = "grab";
   }
 
   disable() {
@@ -51,7 +52,8 @@ export class InteractionHandler {
       this.map.getContainer().style.cursor = "pointer";
     } else {
       this.overlayManager.highlightSegment(null);
-      this.map.getContainer().style.cursor = "not-allowed";
+      // Keep panning affordance when not hovering a valid road
+      this.map.getContainer().style.cursor = "grab";
     }
   }
 
@@ -68,7 +70,8 @@ export class InteractionHandler {
     }
 
     if (event.type === "contextmenu") {
-      this.handleBlock(match.segment.id);
+      // Pass the click location so the block lands under the cursor
+      this.handleBlock(match, this.map.latLngToContainerPoint(event.latlng));
     } else {
       this.handleVehicleSpawn(match, this.carCount);
     }
@@ -78,12 +81,17 @@ export class InteractionHandler {
     this.vehicleEngine.spawnVehicles(match, count);
   }
 
-  handleBlock(segmentId) {
+  handleBlock(match, point) {
+    const segmentId = match.segment.id;
     if (this.overlayManager.isSegmentBlocked(segmentId)) {
       this.uiControls.showToast("Segment already blocked");
       return;
     }
-    this.overlayManager.addBlock(segmentId);
-    this.uiControls.showToast("Block placed — vehicles will stop");
+    this.overlayManager.addBlock(segmentId, {
+      point,
+      segmentIndex: match.segmentIndex,
+      tOnSegment: match.tOnSegment,
+    });
+    this.uiControls.showToast("Block placed - vehicles will stop");
   }
 }

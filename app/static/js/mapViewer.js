@@ -101,7 +101,6 @@ export class MapViewer {
   }
 
   freeze() {
-    this.map.dragging.disable();
     this.map.scrollWheelZoom.disable();
     this.map.doubleClickZoom.disable();
     this.map.boxZoom.disable();
@@ -109,7 +108,6 @@ export class MapViewer {
   }
 
   unfreeze() {
-    this.map.dragging.enable();
     this.map.scrollWheelZoom.enable();
     this.map.doubleClickZoom.enable();
     this.map.boxZoom.enable();

@@ -8,7 +8,7 @@ function formatMultiplier(value) {
 }
 
 export class UIControls {
-  constructor({ onRunToggle, onStop, onCarCountChange, onSpeedModeToggle }) {
+  constructor({ onRunToggle, onStop, onCarCountChange, onSpeedModeToggle, onTypeSpeedChange }) {
     this.runButton = document.getElementById("run-toggle");
     this.speedButton = document.getElementById("speed-mode");
     this.stopButton = document.getElementById("stop");
@@ -16,6 +16,8 @@ export class UIControls {
     this.toast = document.getElementById("toast");
     this.overlayMessage = document.getElementById("overlay-message");
     this.zoomStatus = document.getElementById("zoom-status");
+    this.speedControls = document.getElementById("speed-controls");
+    this.onTypeSpeedChange = onTypeSpeedChange;
 
     this.runState = "idle";
 
@@ -156,5 +158,43 @@ export class UIControls {
       .map((step) => `<li>${step}</li>`)
       .join("");
     legend.appendChild(instructions);
+  }
+
+  renderSpeedInputs(vehicleTypes) {
+    if (!this.speedControls) return;
+    this.speedControls.innerHTML = "";
+    const label = document.createElement("span");
+    label.className = "control-label";
+    label.textContent = "Speeds (mph):";
+    this.speedControls.appendChild(label);
+
+    vehicleTypes.forEach((type) => {
+      const wrap = document.createElement("div");
+      wrap.style.display = "inline-flex";
+      wrap.style.alignItems = "center";
+      wrap.style.gap = "0.25rem";
+      const l = document.createElement("label");
+      l.className = "control-label";
+      l.textContent = type.displayName;
+      l.htmlFor = `speed-${type.name}`;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "1";
+      input.max = "70";
+      input.step = "1";
+      input.className = "control-input speed-input";
+      input.id = `speed-${type.name}`;
+      input.value = String(Math.round((type.avgSpeedMps || 0) / 0.44704));
+      input.setAttribute("aria-label", `Average speed for ${type.displayName}`);
+      input.addEventListener("change", () => {
+        let mph = Math.floor(Number(input.value) || 1);
+        mph = Math.max(1, Math.min(70, mph));
+        input.value = String(mph);
+        this.onTypeSpeedChange?.(type.name, mph);
+      });
+      wrap.appendChild(l);
+      wrap.appendChild(input);
+      this.speedControls.appendChild(wrap);
+    });
   }
 }

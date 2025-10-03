@@ -51,6 +51,14 @@ function initializeApp() {
     onStop: () => handleStop(),
     onCarCountChange: (value) => interactions?.setCarCount(value),
     onSpeedModeToggle: () => handleSpeedModeToggle(),
+    onTypeSpeedChange: (typeName, mph) => {
+      const types = vehicleConfig.getTypes();
+      const t = types.get(typeName);
+      if (!t) return;
+      const capped = Math.max(1, Math.min(70, mph));
+      t.avgSpeedMps = capped * 0.44704;
+      uiControls.showToast(`${t.displayName} set to ~${capped} mph`);
+    },
   });
 
   const vehicleEngine = new VehicleEngine(mapViewer, overlayManager, vehicleConfig);
@@ -59,7 +67,9 @@ function initializeApp() {
   applySpeedMode(SPEED_MODES[speedModeIndex]);
 
   vehicleConfig.ready.then(() => {
-    uiControls.renderLegend(Array.from(vehicleConfig.getTypes().values()));
+    const types = Array.from(vehicleConfig.getTypes().values());
+    uiControls.renderLegend(types);
+    uiControls.renderSpeedInputs(types);
     uiControls.setSpeedMode(SPEED_MODES[speedModeIndex], vehicleEngine.getCurrentSpeedMultiplier());
   });
 
@@ -127,10 +137,13 @@ function initializeApp() {
   });
 
   simulation.on("stop", () => {
-    vehicleEngine.stop(!preserveVehiclesOnStop);
+    vehicleEngine.stop(true);
     interactions.disable();
     preserveVehiclesOnStop = false;
-    mapViewer.showBoundary(!overlayBuilt);
+    overlayManager.clear();
+    overlayBuilt = false;
+    mapViewer.unfreeze();
+    mapViewer.showBoundary(true);
   });
 
   async function ensureOverlay() {

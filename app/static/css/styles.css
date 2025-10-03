@@ -133,6 +133,18 @@ body,
   gap: 0.65rem;
 }
 
+.speed-controls {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.speed-input {
+  width: 80px;
+}
+
 .legend-title {
   font-size: 0.95rem;
   font-weight: 600;
