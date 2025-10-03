@@ -45,11 +45,12 @@ export class OverlayManager {
   async buildOverlay() {
     const bounds = this.map.getBounds();
     const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
-    const query = `[
-      out:json;
-      way["highway"](${bbox});
-      (._;>;);
-      out;`;
+    const query = `
+[out:json];
+way["highway"](${bbox});
+(._;>;);
+out;
+    `.trim();
     const endpoint = "https://overpass-api.de/api/interpreter";
 
     logger.info("Requesting overlay", bbox);

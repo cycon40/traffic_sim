@@ -56,6 +56,10 @@ export class MapViewer {
     return radius <= MAX_INTERACTION_RADIUS_MILES;
   }
 
+  getInteractionThresholdMiles() {
+    return MAX_INTERACTION_RADIUS_MILES;
+  }
+
   freeze() {
     this.map.dragging.disable();
     this.map.scrollWheelZoom.disable();

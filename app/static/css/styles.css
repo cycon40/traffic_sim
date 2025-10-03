@@ -80,6 +80,21 @@ body,
   color: var(--muted);
 }
 
+.control-indicator {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.control-indicator[data-status="ready"] {
+  color: #34d399;
+}
+
+.control-indicator[data-status="needs-zoom"] {
+  color: #f97316;
+}
+
 .control-input {
   width: 90px;
   padding: 0.45rem 0.65rem;
