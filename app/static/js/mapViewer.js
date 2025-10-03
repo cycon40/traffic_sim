@@ -30,6 +30,10 @@ export class MapViewer {
     this.zoomListeners = new Set();
     this.map.on("zoomend", () => this.emitZoomChange());
     this.map.on("moveend", () => this.emitZoomChange());
+
+    // Visual boundary (double-line ring) for valid interaction radius
+    this.boundaryLayer = L.layerGroup().addTo(this.map);
+    this.boundaryVisible = false;
   }
 
   onZoomChange(listener) {
@@ -58,6 +62,41 @@ export class MapViewer {
 
   getInteractionThresholdMiles() {
     return MAX_INTERACTION_RADIUS_MILES;
+  }
+
+  // Boundary ring visibility management -------------------------------------
+  showBoundary(show) {
+    this.boundaryVisible = !!show;
+    if (show) {
+      this.updateBoundary();
+    } else {
+      this.boundaryLayer.clearLayers();
+    }
+  }
+
+  updateBoundary() {
+    if (!this.boundaryVisible) return;
+    const center = this.map.getCenter();
+    const radiusMeters = this.milesToMeters(this.getInteractionThresholdMiles());
+    this.boundaryLayer.clearLayers();
+    const common = {
+      color: "#86efac",
+      weight: 2.5,
+      opacity: 0.9,
+      fill: false,
+      interactive: false,
+      dashArray: "6,6",
+    };
+    // Outer ring
+    L.circle(center, { ...common, weight: 3.5, radius: radiusMeters }).addTo(this.boundaryLayer);
+    // Slightly inner ring for double-line effect
+    L.circle(center, { ...common, weight: 2, radius: radiusMeters * 0.985 }).addTo(
+      this.boundaryLayer,
+    );
+  }
+
+  milesToMeters(miles) {
+    return miles / 0.000621371;
   }
 
   freeze() {

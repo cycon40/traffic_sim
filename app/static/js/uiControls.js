@@ -1,4 +1,5 @@
 import { logger } from "./utils/logger.js";
+import { getLegendIconMarkup } from "./vehicleShapes.js";
 
 function formatMultiplier(value) {
   if (!Number.isFinite(value)) return "x1.0";
@@ -50,7 +51,7 @@ export class UIControls {
       this.stopButton.classList.add("active");
     } else if (state === "paused") {
       this.runButton.textContent = "Resume";
-      this.stopButton.classList.add("active");
+      this.stopButton.classList.remove("active");
     } else {
       this.runButton.textContent = "Run";
       this.stopButton.classList.remove("active");
@@ -122,16 +123,18 @@ export class UIControls {
       const row = document.createElement("div");
       row.className = "legend-item";
 
-      const shape = document.createElement("span");
-      shape.className = `legend-shape shape-${type.shape || "circle"}`;
-      shape.style.setProperty("--vehicle-color", type.color);
+      const iconWrap = document.createElement("span");
+      iconWrap.className = "legend-icon";
+      iconWrap.style.setProperty("--vehicle-color", type.color);
+      iconWrap.innerHTML = getLegendIconMarkup(type.shape);
+      const svg = iconWrap.querySelector("svg");
+      if (svg) svg.setAttribute("class", "legend-svg");
 
       const label = document.createElement("span");
       const mph = Math.round((type.avgSpeedMps || 0) / 0.44704);
-      const descriptor = type.shapeLabel || type.shape || "marker";
-      label.textContent = `${type.displayName} · ${descriptor} · ~${mph} mph`;
+      label.textContent = `${type.displayName} · ~${mph} mph`;
 
-      row.appendChild(shape);
+      row.appendChild(iconWrap);
       row.appendChild(label);
       legend.appendChild(row);
     });
@@ -145,7 +148,8 @@ export class UIControls {
     instructions.className = "legend-instructions";
     instructions.innerHTML = [
       "Zoom until the radius indicator turns green.",
-      "Left click a highlighted road to deploy the selected vehicles.",
+      "A light-green ring shows the valid play area.",
+      "Left click a highlighted road to deploy vehicles.",
       "Right click a road to drop a block and stop traffic.",
       "Use the Speed button to match the pace to your zoom.",
     ]

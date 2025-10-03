@@ -70,6 +70,8 @@ function initializeApp() {
     uiControls.updateZoomIndicator(radius, thresholdMiles);
     const shouldShow = radius > thresholdMiles && (simulation.isIdle() || simulation.state === SimulationStates.STOPPED);
     uiControls.showOverlayMessage(shouldShow);
+    const showBoundary = !overlayBuilt && (simulation.isIdle() || simulation.state === SimulationStates.STOPPED);
+    mapViewer.showBoundary(showBoundary);
     if (vehicleEngine.isDynamicSpeed()) {
       uiControls.setSpeedMode(SPEED_MODES[speedModeIndex], vehicleEngine.getCurrentSpeedMultiplier());
     }
@@ -78,6 +80,7 @@ function initializeApp() {
   // Trigger an initial indicator update before the first interaction.
   uiControls.updateZoomIndicator(mapViewer.getVisibleRadiusMiles(), thresholdMiles);
   uiControls.showOverlayMessage(!mapViewer.isWithinInteractionThreshold());
+  mapViewer.showBoundary(true);
   uiControls.setSpeedMode(SPEED_MODES[speedModeIndex], vehicleEngine.getCurrentSpeedMultiplier());
 
   vehicleEngine.on("counts", (counts) => {
@@ -112,6 +115,7 @@ function initializeApp() {
 
   simulation.on("start", () => {
     vehicleEngine.start();
+    mapViewer.showBoundary(false);
   });
 
   simulation.on("pause", () => {
@@ -126,6 +130,7 @@ function initializeApp() {
     vehicleEngine.stop(!preserveVehiclesOnStop);
     interactions.disable();
     preserveVehiclesOnStop = false;
+    mapViewer.showBoundary(!overlayBuilt);
   });
 
   async function ensureOverlay() {
@@ -134,6 +139,7 @@ function initializeApp() {
     }
     try {
       uiControls.showToast("Loading roads for simulation.");
+      mapViewer.showBoundary(false);
       await overlayManager.buildOverlay();
       overlayBuilt = true;
       uiControls.showToast("Road overlay ready - click to add vehicles");
@@ -212,3 +218,7 @@ if (window.L) {
     }
   }, LEAFLET_TIMEOUT_MS);
 }
+
+
+
+

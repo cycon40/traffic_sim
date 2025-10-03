@@ -1,4 +1,5 @@
 import { logger } from "./utils/logger.js";
+import { getVehicleIconMarkup } from "./vehicleShapes.js";
 import { clamp } from "./utils/geoUtils.js";
 
 function randomChoice(items) {
@@ -55,19 +56,27 @@ export class VehicleEngine {
       logger.warn("No vehicle types available");
       return;
     }
+    const isHighwayForSemi = (highway) =>
+      new Set(["motorway", "trunk", "primary"]).has(String(highway || "").toLowerCase());
     for (let i = 0; i < count; i += 1) {
-      const type = this.iterateTypes() || randomChoice(types);
+      let type = this.iterateTypes() || randomChoice(types);
+      if ((type?.name === "semi_truck" || type?.shape === "semi") && !isHighwayForSemi(segment?.highway)) {
+        // Skip semi trucks off highways; pick a non-semi fallback
+        const pool = types.filter((t) => t.name !== "semi_truck");
+        type = randomChoice(pool) || types.find((t) => t.name !== "semi_truck") || type;
+      }
       const vehicleId = `vehicle-${this.vehicleId += 1}`;
       const direction = 1;
       const baseDistance = this.distanceAt(segment, segmentIndex, tOnSegment);
       const jitter = (Math.random() * 8 - 4) * i;
       const initialDistance = clamp(baseDistance + jitter, 0, segment.totalLength);
-      const shapeClass = type?.shape ? `shape-${type.shape}` : "shape-circle";
+      const iconMarkup = getVehicleIconMarkup(type?.shape || type?.name);
+      const vehicleColor = type?.color || "#38bdf8";
       const icon = L.divIcon({
         className: "vehicle-icon",
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-        html: `<div class="vehicle-marker ${shapeClass}" style="--vehicle-color:${type?.color || "#38bdf8"}"></div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+        html: `<div class="vehicle-marker" style="--vehicle-color:${vehicleColor}">${iconMarkup}</div>`,
       });
       const marker = L.marker(segment.latlngs[segmentIndex], {
         icon,

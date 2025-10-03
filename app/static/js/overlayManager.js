@@ -12,16 +12,17 @@ const HIGHWAY_CLASSES = [
   "service",
 ];
 
+// Softer, pastel-like road overlay colors for better contrast with markers
 const STYLES = {
-  motorway: { color: "#e2e8f0", weight: 8 },
-  trunk: { color: "#cbd5f5", weight: 7 },
-  primary: { color: "#aebbf5", weight: 6 },
-  secondary: { color: "#8fa5f5", weight: 5 },
-  tertiary: { color: "#7c93f5", weight: 4 },
-  residential: { color: "#64748b", weight: 3.5 },
-  living_street: { color: "#475569", weight: 3 },
-  service: { color: "#475569", weight: 3 },
-  default: { color: "#64748b", weight: 3 },
+  motorway: { color: "#d1fae5", weight: 8 },
+  trunk: { color: "#e0e7ff", weight: 7 },
+  primary: { color: "#fde68a", weight: 6 },
+  secondary: { color: "#f5d0fe", weight: 5 },
+  tertiary: { color: "#bfdbfe", weight: 4 },
+  residential: { color: "#e5e7eb", weight: 3.5 },
+  living_street: { color: "#e2e8f0", weight: 3 },
+  service: { color: "#e2e8f0", weight: 3 },
+  default: { color: "#e5e7eb", weight: 3 },
 };
 
 function getStyle(highway) {

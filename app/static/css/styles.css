@@ -148,6 +148,20 @@ body,
   font-size: 0.95rem;
 }
 
+.legend-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vehicle-color, #38bdf8);
+}
+
+.legend-svg {
+  width: 26px;
+  height: 26px;
+}
+
 .legend-subtitle {
   font-size: 0.85rem;
   font-weight: 600;
@@ -263,48 +277,17 @@ body,
 }
 
 .vehicle-icon .vehicle-marker {
-  width: 22px;
-  height: 22px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   transform: rotate(var(--heading-deg));
   transition: transform 120ms linear;
+  color: var(--vehicle-color, #38bdf8);
 }
 
-.vehicle-icon .vehicle-marker::after {
-  content: "";
-  display: block;
-  width: 14px;
-  height: 14px;
-  background: var(--vehicle-color, #38bdf8);
-  border: 2px solid rgba(15, 23, 42, 0.75);
-  box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.18);
-  border-radius: 4px;
-}
-
-.vehicle-icon .vehicle-marker.shape-triangle::after {
-  clip-path: polygon(50% 6%, 8% 94%, 92% 94%);
-  border-radius: 0;
-  transform-origin: 50% 65%;
-}
-
-.vehicle-icon .vehicle-marker.shape-rectangle::after {
-  width: 16px;
-  height: 10px;
-  border-radius: 2px;
-}
-
-.vehicle-icon .vehicle-marker.shape-diamond::after {
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  border-radius: 0;
-}
-
-.vehicle-icon .vehicle-marker.shape-circle::after {
-  border-radius: 50%;
-}
-
-.vehicle-icon.paused .vehicle-marker::after {
+.vehicle-icon.paused .vehicle-marker {
   animation: pulse 1s ease infinite;
 }
 
@@ -335,6 +318,11 @@ body,
 
 .segment-highlight {
   filter: drop-shadow(0 0 6px var(--halo));
+}
+
+/* Light-green double boundary ring */
+.leaflet-interactive.radius-boundary {
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {

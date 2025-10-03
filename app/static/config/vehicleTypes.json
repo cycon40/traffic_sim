@@ -1,7 +1,8 @@
 {
   "vehicle_types": {
-    "car": { "color": "#3A7AFE", "avg_speed_mph": 32, "max_speed_mph": 70 },
-    "truck": { "color": "#EF4444", "avg_speed_mph": 24, "max_speed_mph": 60 },
-    "bike": { "color": "#10B981", "avg_speed_mph": 15, "max_speed_mph": 25 }
+    "car": { "color": "#0ea5a6", "avg_speed_mph": 32, "max_speed_mph": 70 },
+    "van": { "color": "#a78bfa", "avg_speed_mph": 28, "max_speed_mph": 65 },
+    "truck": { "color": "#f59e0b", "avg_speed_mph": 24, "max_speed_mph": 60 },
+    "semi_truck": { "color": "#f472b6", "avg_speed_mph": 22, "max_speed_mph": 65 }
   }
 }
