@@ -282,7 +282,9 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: rotate(var(--heading-deg));
+  /* Base icon silhouettes face right. Offset -90deg so 0deg = facing up (north),
+     then add heading to point along direction of travel. */
+  transform: rotate(calc(var(--heading-deg) + var(--base-rotation-deg, -90deg)));
   transition: transform 120ms linear;
   color: var(--vehicle-color, #38bdf8);
 }
@@ -301,19 +303,9 @@ body,
   }
 }
 
+/* Styling for Leaflet polygon-based road blocks */
 .block-overlay {
-  background: rgba(239, 68, 68, 0.45);
-  border-radius: 8px;
-  border: 1px solid rgba(239, 68, 68, 0.65);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
-}
-
-.block-overlay::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  border: 1px dashed rgba(248, 113, 113, 0.8);
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.35));
 }
 
 .segment-highlight {

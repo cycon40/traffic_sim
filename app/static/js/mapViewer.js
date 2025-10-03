@@ -80,7 +80,8 @@ export class MapViewer {
     const radiusMeters = this.milesToMeters(this.getInteractionThresholdMiles());
     this.boundaryLayer.clearLayers();
     const common = {
-      color: "#86efac",
+      // Deep blue for strong contrast on light maps
+      color: "#1e40af",
       weight: 2.5,
       opacity: 0.9,
       fill: false,

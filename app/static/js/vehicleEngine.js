@@ -209,7 +209,11 @@ export class VehicleEngine {
     this.vehicles.forEach((vehicle) => {
       if (vehicle.status === "exited") return;
       if (vehicle.status === "blocked") {
+        // Try to reroute if the segment is still blocked
         if (!this.overlayManager.isSegmentBlocked(vehicle.segmentId)) {
+          vehicle.status = "active";
+          vehicle.marker.getElement()?.classList.remove("paused");
+        } else if (this.rerouteFromBlocked(vehicle)) {
           vehicle.status = "active";
           vehicle.marker.getElement()?.classList.remove("paused");
         } else {
@@ -217,9 +221,12 @@ export class VehicleEngine {
         }
       }
       if (this.overlayManager.isSegmentBlocked(vehicle.segmentId)) {
-        vehicle.status = "blocked";
-        vehicle.marker.getElement()?.classList.add("paused");
-        return;
+        // Attempt immediate reroute instead of stopping
+        if (!this.rerouteFromBlocked(vehicle)) {
+          vehicle.status = "blocked";
+          vehicle.marker.getElement()?.classList.add("paused");
+          return;
+        }
       }
 
       const baseSpeed = vehicle.baseSpeedMps ?? vehicle.speedMps ?? vehicle.type?.avgSpeedMps ?? 8;
@@ -284,6 +291,23 @@ export class VehicleEngine {
     if (!nextSegment) {
       return false;
     }
+    vehicle.segmentId = next.segmentId;
+    vehicle.direction = next.direction;
+    vehicle.distance = next.direction === 1 ? 0 : nextSegment.totalLength;
+    return true;
+  }
+
+  rerouteFromBlocked(vehicle) {
+    const segment = this.overlayManager.getSegment(vehicle.segmentId);
+    if (!segment) return false;
+    const nodeKey = vehicle.direction === 1 ? segment.terminals.endKey : segment.terminals.startKey;
+    const candidates = this.overlayManager
+      .getConnectedSegments(nodeKey, vehicle.segmentId)
+      .filter((c) => !this.overlayManager.isSegmentBlocked(c.segmentId));
+    const next = randomChoice(candidates);
+    if (!next) return false;
+    const nextSegment = this.overlayManager.getSegment(next.segmentId);
+    if (!nextSegment) return false;
     vehicle.segmentId = next.segmentId;
     vehicle.direction = next.direction;
     vehicle.distance = next.direction === 1 ? 0 : nextSegment.totalLength;

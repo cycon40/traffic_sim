@@ -193,11 +193,50 @@ out;
     const segment = this.segments.get(segmentId);
     if (!segment) return null;
     const blockId = `${segmentId}-${Date.now()}`;
-    const bounds = L.latLngBounds(segment.latlngs);
-    const block = L.rectangle(bounds, {
+
+    // Ensure screen points are fresh
+    this.updateScreenPoints();
+    const pts = segment.screenPoints;
+    if (!pts || pts.length < 2) return null;
+    const mid = Math.floor(pts.length / 2);
+    const a = pts[Math.max(0, mid - 1)];
+    const b = pts[Math.min(pts.length - 1, mid)];
+    const cx = (a.x + b.x) / 2;
+    const cy = (a.y + b.y) / 2;
+    const vx = b.x - a.x;
+    const vy = b.y - a.y;
+    const vlen = Math.hypot(vx, vy) || 1;
+    const tx = vx / vlen; // tangent along the road
+    const ty = vy / vlen;
+    const nx = -ty; // normal (perpendicular) to the road
+    const ny = tx;
+
+    // Size of the blocking bar in screen pixels
+    const width = 26; // across the road
+    const thickness = 6; // along-road thickness
+    const nHx = (nx * width) / 2;
+    const nHy = (ny * width) / 2;
+    const tHx = (tx * thickness) / 2;
+    const tHy = (ty * thickness) / 2;
+
+    const cornersScreen = [
+      L.point(cx - tHx - nHx, cy - tHy - nHy),
+      L.point(cx + tHx - nHx, cy + tHy - nHy),
+      L.point(cx + tHx + nHx, cy + tHy + nHy),
+      L.point(cx - tHx + nHx, cy - tHy + nHy),
+    ];
+    const cornersLatLng = cornersScreen.map((p) => this.map.containerPointToLatLng(p));
+
+    const block = L.polygon(cornersLatLng, {
       className: "block-overlay",
+      color: "#ef4444",
+      weight: 2,
+      fillColor: "#ef4444",
+      fillOpacity: 0.6,
       interactive: false,
+      pane: "overlayPane",
     }).addTo(this.map);
+
     this.blocks.set(blockId, { segmentId, block });
     this.blockedSegments.add(segmentId);
     return blockId;
